@@ -35,13 +35,18 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
+      name: 'UI - Chromium',
       use: { ...devices['Desktop Chrome'] },
     },
 
     {
-      name: 'firefox',
+      name: 'UI - Firefox',
       use: { ...devices['Desktop Firefox'] },
+    },
+
+    {
+      name: 'API Tests',
+      testMatch: '**/jsonplaceholder.spec.js',
     },
 
     // {
