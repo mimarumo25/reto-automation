@@ -1,0 +1,12 @@
+{
+  "productsToAdd": [
+    "Sauce Labs Backpack",
+    "Sauce Labs Bolt T-Shirt"
+  ],
+  "expectedCartCount": 2,
+  "customer": {
+    "firstName": "Test",
+    "lastName": "User",
+    "zip": "12345"
+  }
+}

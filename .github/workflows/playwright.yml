@@ -1,0 +1,145 @@
+name: 🎭 Playwright E2E & API Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Ejecutar diariamente a las 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Permite ejecución manual desde GitHub UI
+
+jobs:
+  test:
+    name: Test - ${{ matrix.project }}
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        project: 
+          - 'UI - Chromium'
+          - 'UI - Firefox'
+          - 'API Tests'
+    
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'lts/*'
+        cache: 'npm'
+
+    - name: 🔧 Install dependencies
+      run: npm ci
+
+    - name: 🎭 Install Playwright Browsers
+      run: npx playwright install --with-deps
+
+    - name: 🧪 Run Playwright tests
+      run: npx playwright test --project="${{ matrix.project }}"
+      env:
+        BASE_URL: ${{ secrets.BASE_URL || 'https://www.saucedemo.com/' }}
+        SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME || 'standard_user' }}
+        SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD || 'secret_sauce' }}
+        API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://jsonplaceholder.typicode.com' }}
+        CI: true
+
+    - name: 📊 Upload HTML Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report-${{ matrix.project }}
+        path: playwright-report/
+        retention-days: 30
+
+    - name: 🔍 Upload Test Traces
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: playwright-traces-${{ matrix.project }}
+        path: test-results/
+        retention-days: 7
+
+    - name: 📸 Upload Screenshots
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: screenshots-${{ matrix.project }}
+        path: test-results/**/*.png
+        retention-days: 7
+        if-no-files-found: ignore
+
+    - name: 🎥 Upload Videos
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: videos-${{ matrix.project }}
+        path: test-results/**/*.webm
+        retention-days: 7
+        if-no-files-found: ignore
+
+  # Job para combinar reportes
+  merge-reports:
+    name: 📦 Merge Reports
+    if: always()
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'lts/*'
+
+    - name: 🔧 Install dependencies
+      run: npm ci
+
+    - name: 📥 Download all reports
+      uses: actions/download-artifact@v4
+      with:
+        path: all-reports/
+        pattern: playwright-report-*
+
+    - name: 📊 Upload Combined Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: 📊-all-playwright-reports
+        path: all-reports/
+        retention-days: 30
+
+  # Job de notificaciones
+  notify:
+    name: 🔔 Notify Results
+    if: always()
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📊 Check test results
+      id: test-results
+      run: |
+        if [ "${{ needs.test.result }}" == "success" ]; then
+          echo "status=✅ All tests passed!" >> $GITHUB_OUTPUT
+        else
+          echo "status=❌ Some tests failed!" >> $GITHUB_OUTPUT
+        fi
+
+    - name: 💬 Summary
+      run: |
+        echo "### Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "${{ steps.test-results.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Workflow**: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Run Number**: ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
