@@ -135,6 +135,7 @@ jobs:
   deploy-report:
     name: 🚀 Deploy to GitHub Pages
     needs: merge-reports
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
