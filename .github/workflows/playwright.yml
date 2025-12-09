@@ -2,7 +2,7 @@ name: 🎭 Playwright E2E & API Tests
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, feature/automatizacion-checkout ]
   pull_request:
     branches: [ main, master ]
   schedule:
@@ -10,6 +10,11 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
     # Permite ejecución manual desde GitHub UI
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   test:
@@ -50,13 +55,13 @@ jobs:
         API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://jsonplaceholder.typicode.com' }}
         CI: true
 
-    - name: 📊 Upload HTML Report
+    - name: 📊 Upload Blob Report
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: playwright-report-${{ matrix.project }}
-        path: playwright-report/
-        retention-days: 30
+        name: blob-report-${{ matrix.project }}
+        path: blob-report/
+        retention-days: 1
 
     - name: 🔍 Upload Test Traces
       uses: actions/upload-artifact@v4
@@ -99,22 +104,45 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 'lts/*'
+        cache: 'npm'
 
     - name: 🔧 Install dependencies
       run: npm ci
 
-    - name: 📥 Download all reports
+    - name: 📥 Download blob reports
       uses: actions/download-artifact@v4
       with:
-        path: all-reports/
-        pattern: playwright-report-*
+        path: all-blob-reports/
+        pattern: blob-report-*
+        merge-multiple: true
 
-    - name: 📊 Upload Combined Report
+    - name: 🧬 Merge reports
+      run: npx playwright merge-reports --reporter=html ./all-blob-reports
+
+    - name: 📊 Upload HTML Report Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: 📊-all-playwright-reports
-        path: all-reports/
-        retention-days: 30
+        name: html-report--attempt-${{ github.run_attempt }}
+        path: playwright-report/
+        retention-days: 14
+
+    - name: 🚀 Upload Pages Artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: playwright-report/
+
+  # Job de despliegue a GitHub Pages
+  deploy-report:
+    name: 🚀 Deploy to GitHub Pages
+    needs: merge-reports
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   # Job de notificaciones
   notify:
