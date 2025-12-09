@@ -97,3 +97,18 @@ jobs:
 ### Reporting
 
 The pipeline uses `actions/upload-artifact` to save the HTML report. You can download it from the GitHub Actions run summary. Alternatively, you can deploy the report to GitHub Pages.
+
+## 📊 Reporte de Ejecución
+
+El reporte detallado de la última ejecución se encuentra disponible en GitHub Pages:
+
+👉 **[Ver Reporte HTML](https://mimarumo25.github.io/reto-automation/)**
+
+![Captura del Reporte](https://via.placeholder.com/800x400?text=Captura+del+Reporte+Playwright)
+
+> *Nota: El reporte se actualiza automáticamente con cada ejecución en la rama principal.*
+
+## 📄 Documentación
+
+Puedes consultar el plan estratégico detallado aquí:
+- 📑 **[Plan Estratégico de QA](./Plan%20Estratégico%20de%20QA.pdf)**
